@@ -1,133 +1,125 @@
-// Global variables
-let ws = null;
-let isConnected = false;
+// Main application module
+import { DisplayManager } from './modules/displayManager.js';
+import { WebSocketClient } from './modules/websocketClient.js';
+import { ApiClient } from './modules/apiClient.js';
 
-// DOM elements
-const wordDisplay = document.getElementById('wordDisplay');
-const statusElement = document.getElementById('status');
-const connectionStatus = document.getElementById('connectionStatus');
-const startButton = document.getElementById('startButton');
-
-// Function to update the display with current word
-function updateDisplay(word, isRunning) {
-    if (word) {
-        wordDisplay.textContent = word;
-        wordDisplay.style.color = '#2c3e50';
-    } else {
-        wordDisplay.textContent = 'No word selected';
-        wordDisplay.style.color = '#7f8c8d';
+class Application {
+    constructor() {
+        this.displayManager = new DisplayManager();
+        this.websocketClient = new WebSocketClient(this.displayManager);
+        this.apiClient = new ApiClient(this.displayManager);
+        this.isInitialized = false;
     }
-    
-    statusElement.textContent = `Loop status: ${isRunning ? 'Running' : 'Not running'}`;
-}
 
-// Function to update connection status
-function updateConnectionStatus(connected) {
-    isConnected = connected;
-    if (connected) {
-        connectionStatus.textContent = 'WebSocket: Connected';
-        connectionStatus.style.color = '#27ae60';
-        startButton.disabled = false;
-    } else {
-        connectionStatus.textContent = 'WebSocket: Disconnected';
-        connectionStatus.style.color = '#e74c3c';
-        startButton.disabled = true;
-    }
-}
+    // Initialize the application
+    async init() {
+        if (this.isInitialized) {
+            console.warn('Application already initialized');
+            return;
+        }
 
-// Function to connect to WebSocket
-async function connectWebSocket() {
-    try {
-        // Create WebSocket connection
-        ws = new WebSocket(`ws://${window.location.host}`);
-        
-        ws.onopen = () => {
-            console.log('WebSocket connected');
-            updateConnectionStatus(true);
-        };
-        
-        ws.onmessage = async (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                console.log('WebSocket message received:', data);
-                
-                switch (data.type) {
-                    case 'wordUpdate':
-                        // Use requestAnimationFrame for smoother UI updates
-                        await new Promise(resolve => requestAnimationFrame(resolve));
-                        updateDisplay(data.word, true);
-                        startButton.disabled = true;
-                        break;
-                }
-            } catch (error) {
-                console.error('Error parsing WebSocket message:', error);
-            }
-        };
-        
-        ws.onclose = async () => {
-            console.log('WebSocket disconnected');
-            updateConnectionStatus(false);
+        try {
+            // Setup WebSocket message handlers
+            this.setupWebSocketHandlers();
             
-            // Try to reconnect after 3 seconds
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            if (!isConnected) {
-                console.log('Attempting to reconnect...');
-                await connectWebSocket();
-            }
-        };
-        
-        ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            updateConnectionStatus(false);
-        };
-        
-    } catch (error) {
-        console.error('Error creating WebSocket:', error);
-        updateConnectionStatus(false);
+            // Setup event listeners
+            this.setupEventListeners();
+            
+            // Connect to WebSocket
+            await this.websocketClient.connect();
+            
+            this.isInitialized = true;
+            console.log('Application initialized successfully');
+            
+        } catch (error) {
+            console.error('Error initializing application:', error);
+            this.displayManager.showNotification('Failed to initialize application', 'error');
+        }
     }
-}
 
-// Function to start the word loop
-async function startLoop() {
-    if (!isConnected) {
-        alert('Not connected to server');
-        return;
+    // Setup WebSocket message handlers
+    setupWebSocketHandlers() {
+        // Handle word updates from WebSocket
+        this.websocketClient.on('wordUpdate', (data) => {
+            this.displayManager.updateDisplay(data.word, true);
+            this.displayManager.setStartButtonState(true);
+        });
+
+        // You can add more message handlers here
+        // this.websocketClient.on('otherMessageType', (data) => {
+        //     // Handle other message types
+        // });
     }
-    
-    try {
-        const response = await fetch('/api/start-loop', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
+
+    // Setup event listeners
+    setupEventListeners() {
+        const startButton = document.getElementById('startButton');
+        
+        startButton.addEventListener('click', async () => {
+            await this.startLoop();
+        });
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !startButton.disabled) {
+                this.startLoop();
             }
         });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            console.log('Loop started successfully');
-            // WebSocket will handle the UI updates
-        } else {
-            alert('Failed to start loop: ' + data.message);
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && !this.websocketClient.getConnectionStatus()) {
+                console.log('Page became visible, attempting to reconnect...');
+                this.websocketClient.connect();
+            }
+        });
+    }
+
+    // Start the word loop
+    async startLoop() {
+        if (!this.websocketClient.getConnectionStatus()) {
+            this.displayManager.showNotification('Not connected to server', 'error');
+            return;
         }
-    } catch (error) {
-        console.error('Error starting loop:', error);
-        alert('Error: Could not connect to server');
+        
+        try {
+            await this.apiClient.startLoop();
+            // WebSocket will handle the UI updates
+        } catch (error) {
+            console.error('Error starting loop:', error);
+            // Error message is already handled by ApiClient
+        }
+    }
+
+    // Get application status
+    getStatus() {
+        return {
+            isInitialized: this.isInitialized,
+            websocketConnected: this.websocketClient.getConnectionStatus(),
+            displayManager: !!this.displayManager
+        };
+    }
+
+    // Cleanup resources
+    cleanup() {
+        if (this.websocketClient) {
+            this.websocketClient.close();
+        }
+        this.isInitialized = false;
     }
 }
 
+// Global application instance
+const app = new Application();
 
+// Initialize the application when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    app.init().catch(error => {
+        console.error('Failed to initialize application:', error);
+    });
+});
 
-// Initialize the application
-function init() {
-    // Connect to WebSocket
-    connectWebSocket();
-    
-    // Add event listeners
-    startButton.addEventListener('click', startLoop);
-    
-    console.log('Application initialized with WebSocket');
-}
+// Make app available globally for debugging
+window.app = app;
 
-// Start the application when the page loads
-document.addEventListener('DOMContentLoaded', init);
+export { Application };

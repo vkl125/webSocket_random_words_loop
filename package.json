@@ -2,10 +2,11 @@
   "name": "random-word-polling",
   "version": "1.0.0",
   "description": "A simple web server with polling functionality",
-  "main": "server.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node app.js",
+    "dev": "node app.js",
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "cors": "^2.8.5",
