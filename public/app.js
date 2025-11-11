@@ -36,7 +36,7 @@ function updateConnectionStatus(connected) {
 }
 
 // Function to connect to WebSocket
-function connectWebSocket() {
+async function connectWebSocket() {
     try {
         // Create WebSocket connection
         ws = new WebSocket(`ws://${window.location.host}`);
@@ -46,13 +46,15 @@ function connectWebSocket() {
             updateConnectionStatus(true);
         };
         
-        ws.onmessage = (event) => {
+        ws.onmessage = async (event) => {
             try {
                 const data = JSON.parse(event.data);
                 console.log('WebSocket message received:', data);
                 
                 switch (data.type) {
                     case 'wordUpdate':
+                        // Use requestAnimationFrame for smoother UI updates
+                        await new Promise(resolve => requestAnimationFrame(resolve));
                         updateDisplay(data.word, true);
                         startButton.disabled = true;
                         break;
@@ -62,17 +64,16 @@ function connectWebSocket() {
             }
         };
         
-        ws.onclose = () => {
+        ws.onclose = async () => {
             console.log('WebSocket disconnected');
             updateConnectionStatus(false);
             
             // Try to reconnect after 3 seconds
-            setTimeout(() => {
-                if (!isConnected) {
-                    console.log('Attempting to reconnect...');
-                    connectWebSocket();
-                }
-            }, 3000);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            if (!isConnected) {
+                console.log('Attempting to reconnect...');
+                await connectWebSocket();
+            }
         };
         
         ws.onerror = (error) => {
