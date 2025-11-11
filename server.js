@@ -40,7 +40,7 @@ app.post('/api/start-loop', (req, res) => {
     // Start the interval to change words every 5 seconds
     loopInterval = setInterval(() => {
         currentWord = getRandomWord();
-        console.log(`Current word: ${currentWord}(${new Date().toISOString()})`);
+        console.log(`Current word @ (${new Date().toISOString()}): ${currentWord}`);
     }, 5000);
 
     res.json({ 
