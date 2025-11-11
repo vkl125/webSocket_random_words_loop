@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Word Polling</title>
+    <title>Random Word WebSocket</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -86,7 +86,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Random Word Polling Demo</h1>
+        <h1>Random Word WebSocket Demo</h1>
         
         <div class="word-display" id="wordDisplay">
             Click "Start Loop" to begin
@@ -94,6 +94,10 @@
         
         <div class="status" id="status">
             Loop status: Not running
+        </div>
+        
+        <div class="status" id="connectionStatus">
+            WebSocket: Connecting...
         </div>
         
         <div>
@@ -108,8 +112,8 @@
         <div class="info">
             <p><strong>How it works:</strong></p>
             <p>When you click "Start Loop", the backend will begin selecting random words from: cat, dog, mouse, horse, fox</p>
-            <p>The frontend polls the server every 2 seconds to get the latest word</p>
-            <p>The backend changes words every 5 seconds</p>
+            <p>The frontend uses WebSocket for real-time updates (no polling needed!)</p>
+            <p>The backend changes words every 5 seconds and pushes updates immediately</p>
         </div>
     </div>
 
