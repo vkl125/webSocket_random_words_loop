@@ -111,29 +111,7 @@ app.get('/api/current-word', (req, res) => {
     });
 });
 
-// API endpoint to stop the loop
-app.post('/api/stop-loop', (req, res) => {
-    if (!isLoopRunning) {
-        return res.json({ 
-            success: false, 
-            message: 'Loop is not running' 
-        });
-    }
 
-    clearInterval(loopInterval);
-    isLoopRunning = false;
-    currentWord = null;
-
-    // Broadcast stop to all clients
-    broadcastToClients({
-        type: 'loopStopped'
-    });
-
-    res.json({ 
-        success: true, 
-        message: 'Word loop stopped'
-    });
-});
 
 // Serve the main page
 app.get('/', (req, res) => {

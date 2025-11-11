@@ -7,7 +7,6 @@ const wordDisplay = document.getElementById('wordDisplay');
 const statusElement = document.getElementById('status');
 const connectionStatus = document.getElementById('connectionStatus');
 const startButton = document.getElementById('startButton');
-const stopButton = document.getElementById('stopButton');
 
 // Function to update the display with current word
 function updateDisplay(word, isRunning) {
@@ -33,7 +32,6 @@ function updateConnectionStatus(connected) {
         connectionStatus.textContent = 'WebSocket: Disconnected';
         connectionStatus.style.color = '#e74c3c';
         startButton.disabled = true;
-        stopButton.disabled = true;
     }
 }
 
@@ -57,12 +55,6 @@ function connectWebSocket() {
                     case 'wordUpdate':
                         updateDisplay(data.word, true);
                         startButton.disabled = true;
-                        stopButton.disabled = false;
-                        break;
-                    case 'loopStopped':
-                        updateDisplay(null, false);
-                        startButton.disabled = false;
-                        stopButton.disabled = true;
                         break;
                 }
             } catch (error) {
@@ -123,34 +115,7 @@ async function startLoop() {
     }
 }
 
-// Function to stop the word loop
-async function stopLoop() {
-    if (!isConnected) {
-        alert('Not connected to server');
-        return;
-    }
-    
-    try {
-        const response = await fetch('/api/stop-loop', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            console.log('Loop stopped successfully');
-            // WebSocket will handle the UI updates
-        } else {
-            alert('Failed to stop loop: ' + data.message);
-        }
-    } catch (error) {
-        console.error('Error stopping loop:', error);
-        alert('Error: Could not connect to server');
-    }
-}
+
 
 // Initialize the application
 function init() {
@@ -159,7 +124,6 @@ function init() {
     
     // Add event listeners
     startButton.addEventListener('click', startLoop);
-    stopButton.addEventListener('click', stopLoop);
     
     console.log('Application initialized with WebSocket');
 }
