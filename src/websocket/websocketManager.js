@@ -1,10 +1,14 @@
 // WebSocket connection management
 const WebSocket = require('ws');
+const { WEBSOCKET_CLOSE_CODE, WEBSOCKET_CLOSE_REASON } = require('../config/constants');
+const Logger = require('../utils/logger');
 
 class WebSocketManager {
     constructor() {
         this.clients = new Set();
         this.wss = null;
+        this.closeCode = WEBSOCKET_CLOSE_CODE;
+        this.closeReason = WEBSOCKET_CLOSE_REASON;
     }
 
     // Initialize WebSocket server
@@ -27,16 +31,16 @@ class WebSocketManager {
 
     // Handle new WebSocket connection
     async handleConnection(ws) {
-        console.log('New WebSocket client connected');
+        Logger.info('New WebSocket client connected');
         this.clients.add(ws);
         
         ws.on('close', () => {
-            console.log('WebSocket client disconnected');
+            Logger.info('WebSocket client disconnected');
             this.clients.delete(ws);
         });
         
         ws.on('error', (error) => {
-            console.error('WebSocket error:', error);
+            Logger.error('WebSocket error:', error);
             this.clients.delete(ws);
         });
     }
@@ -48,23 +52,14 @@ class WebSocketManager {
         
         this.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
-                sendPromises.push(new Promise((resolve, reject) => {
-                    client.send(message, (error) => {
-                        if (error) {
-                            console.error('Error sending message to client:', error);
-                            reject(error);
-                        } else {
-                            resolve();
-                        }
-                    });
-                }));
+                sendPromises.push(this.sendToClient(client, data));
             }
         });
         
         try {
             await Promise.allSettled(sendPromises);
         } catch (error) {
-            console.error('Error broadcasting to clients:', error);
+            Logger.error('Error broadcasting to clients:', error);
         }
     }
 
@@ -74,6 +69,7 @@ class WebSocketManager {
             return new Promise((resolve, reject) => {
                 ws.send(JSON.stringify(data), (error) => {
                     if (error) {
+                        Logger.error('Error sending message to client:', error);
                         reject(error);
                     } else {
                         resolve();
@@ -89,9 +85,9 @@ class WebSocketManager {
     }
 
     // Close all WebSocket connections
-    async closeAllConnections(closeCode = 1000, closeReason = 'Server shutting down') {
+    async closeAllConnections(closeCode = this.closeCode, closeReason = this.closeReason) {
         if (this.clients.size > 0) {
-            console.log(`Closing ${this.clients.size} WebSocket connections...`);
+            Logger.info(`Closing ${this.clients.size} WebSocket connections...`);
             const closePromises = Array.from(this.clients).map(client => 
                 new Promise(resolve => {
                     client.close(closeCode, closeReason);
@@ -107,7 +103,7 @@ class WebSocketManager {
         if (this.wss) {
             await new Promise(resolve => {
                 this.wss.close(() => {
-                    console.log('WebSocket server closed');
+                    Logger.info('WebSocket server closed');
                     resolve();
                 });
             });

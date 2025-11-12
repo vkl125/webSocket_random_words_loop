@@ -1,5 +1,6 @@
 // Word management utilities
-const { WORDS } = require('../config/constants');
+const { WORDS, WORD_CHANGE_INTERVAL } = require('../config/constants');
+const Logger = require('./logger');
 
 class WordManager {
     constructor() {
@@ -7,6 +8,7 @@ class WordManager {
         this.currentWord = null;
         this.isLoopRunning = false;
         this.loopInterval = null;
+        this.wordChangeInterval = WORD_CHANGE_INTERVAL;
     }
 
     // Get a random word from the word list
@@ -29,16 +31,16 @@ class WordManager {
         this.loopInterval = setInterval(() => {
             try {
                 this.currentWord = this.getRandomWord();
-                console.log(`Current word @ (${new Date().toISOString()}): ${this.currentWord}`);
+                Logger.logWordChange(this.currentWord);
                 
                 // Notify about word change
                 if (onWordChange) {
                     onWordChange(this.currentWord);
                 }
             } catch (error) {
-                console.error('Error in word loop interval:', error);
+                Logger.error('Error in word loop interval:', error);
             }
-        }, 5000);
+        }, this.wordChangeInterval);
 
         return this.currentWord;
     }

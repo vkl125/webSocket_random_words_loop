@@ -1,11 +1,18 @@
 // API route handlers
 const express = require('express');
+const ErrorHandler = require('../utils/errorHandler');
+const Logger = require('../utils/logger');
+const { MESSAGE_TYPES, MESSAGES } = require('../config/constants');
 
 class ApiRoutes {
     constructor(wordManager, websocketManager) {
         this.router = express.Router();
         this.wordManager = wordManager;
         this.websocketManager = websocketManager;
+        this.errorHandler = ErrorHandler;
+        this.logger = Logger;
+        this.messageTypes = MESSAGE_TYPES;
+        this.messages = MESSAGES;
         this.setupRoutes();
     }
 
@@ -16,36 +23,23 @@ class ApiRoutes {
                 const initialWord = this.wordManager.startWordLoop(async (newWord) => {
                     // Broadcast new word to all clients when it changes
                     await this.websocketManager.broadcast({
-                        type: 'wordUpdate',
+                        type: this.messageTypes.WORD_UPDATE,
                         word: newWord
                     });
                 });
 
                 // Broadcast initial word to all clients
                 await this.websocketManager.broadcast({
-                    type: 'wordUpdate',
+                    type: this.messageTypes.WORD_UPDATE,
                     word: initialWord
                 });
 
-                res.json({ 
-                    success: true, 
-                    message: 'Word loop started',
-                    initialWord: initialWord
-                });
+                res.json(this.errorHandler.createSuccessResponse(
+                    this.messages.LOOP_STARTED,
+                    { initialWord: initialWord }
+                ));
             } catch (error) {
-                console.error('Error starting word loop:', error);
-                
-                if (error.message === 'Loop is already running') {
-                    res.json({ 
-                        success: false, 
-                        message: 'Loop is already running' 
-                    });
-                } else {
-                    res.status(500).json({ 
-                        success: false, 
-                        message: 'Internal server error' 
-                    });
-                }
+                this.errorHandler.handleApiError(error, res);
             }
         });
 

@@ -7,6 +7,7 @@ const AppMiddleware = require('../middleware/appMiddleware');
 const ApiRoutes = require('../routes/apiRoutes');
 const WordManager = require('../utils/wordManager');
 const WebSocketManager = require('../websocket/websocketManager');
+const Logger = require('../utils/logger');
 
 class Server {
     constructor() {
@@ -49,9 +50,9 @@ class Server {
                 });
             });
 
-            console.log('Server initialized successfully');
+            Logger.info('Server initialized successfully');
         } catch (error) {
-            console.error('Error initializing server:', error);
+            Logger.error('Error initializing server:', error);
             throw error;
         }
     }
@@ -61,7 +62,7 @@ class Server {
         try {
             // Create HTTP server
             this.server = this.app.listen(PORT, () => {
-                console.log(`Server is running on http://localhost:${PORT}`);
+                Logger.info(`Server is running on http://localhost:${PORT}`);
             });
 
             // Initialize WebSocket server
@@ -80,7 +81,7 @@ class Server {
     // Setup graceful shutdown
     setupGracefulShutdown() {
         const gracefulShutdown = async () => {
-            console.log('Shutting down gracefully...');
+            Logger.info('Shutting down gracefully...');
             
             try {
                 // Stop word loop
@@ -93,16 +94,16 @@ class Server {
                 if (this.server) {
                     await new Promise(resolve => {
                         this.server.close(() => {
-                            console.log('HTTP server closed');
+                            Logger.info('HTTP server closed');
                             resolve();
                         });
                     });
                 }
                 
-                console.log('Graceful shutdown complete');
+                Logger.info('Graceful shutdown complete');
                 process.exit(0);
             } catch (error) {
-                console.error('Error during graceful shutdown:', error);
+                Logger.error('Error during graceful shutdown:', error);
                 process.exit(1);
             }
         };
@@ -127,7 +128,7 @@ class Server {
         if (this.server) {
             await new Promise(resolve => {
                 this.server.close(() => {
-                    console.log('Server stopped');
+                    Logger.info('Server stopped');
                     resolve();
                 });
             });

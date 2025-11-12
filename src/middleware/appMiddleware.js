@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const Logger = require('../utils/logger');
 
 class AppMiddleware {
     constructor() {
@@ -20,22 +21,15 @@ class AppMiddleware {
         app.use(express.static(path.join(__dirname, '../../public')));
 
         // Request logging middleware
-        app.use(this.requestLogger);
+        app.use(Logger.requestLogger);
 
         // Error handling middleware
         app.use(this.errorHandler);
     }
 
-    // Request logger middleware
-    requestLogger(req, res, next) {
-        const timestamp = new Date().toISOString();
-        console.log(`[${timestamp}] ${req.method} ${req.path} - ${req.ip}`);
-        next();
-    }
-
     // Error handler middleware
     errorHandler(err, req, res, next) {
-        console.error('Unhandled error:', err);
+        Logger.error('Unhandled error:', err);
         
         res.status(500).json({
             success: false,
